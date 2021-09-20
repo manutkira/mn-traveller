@@ -1,4 +1,7 @@
 # landing-page
+```
+This project only for learning purpose!
+```
 
 ## Project setup
 ```
