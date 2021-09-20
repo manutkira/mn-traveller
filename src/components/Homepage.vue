@@ -15,19 +15,22 @@
                           <h1 class="display-3">{{title}}</h1>
                           <h3 class="">The world is our home.</h3>
                       </div>
-                      <div class="border p-3 p-md-5 bg-white rounded shadow">
+                      <div class=" p-3 p-md-5 bg-white rounded shadow nes-container">
                           <h2>Coming soon</h2>
-                          <form>
+                          <form @submit.prevent="signUp(email)" class="">
                               <div class="form-group">
                                   <label for="emailSignup">Reserve your account now, we'll contact you when it's live</label>
-                                  <input id="emailSignup" placeholder="Enter your Email" class="form-control">
-                                  <small id="emailHelp" class="form-text text-muted">We'll never share your email address</small>
+                                  <input id="emailSignup" 
+                                  type="email"
+                                  v-model="email" placeholder="Enter your Email" class="form-control mb-3">
+                                  <small id="emailHelp" class="form-text text-muted ">We'll never share your email address</small>
                               </div>
-                                  <button type="submit" class="btn btn-warning mt-3">Join Waiting List</button>
+                                  <button  type="submit" class="nes-btn is-warning mt-4 mb-0">Join Waiting List</button>
+                                  <div class="mt-3">{{message}}</div>
                           </form>
                       </div>
                       <div id="available" class="p-2">
-                          <h4 class=" text-center mb-2 mt-3 text-light">
+                          <h4 class=" text-center mb-2 mt-5 text-light nes-btn is-primary">
                               Available on
                           </h4>
                           <div class="row">
@@ -68,16 +71,33 @@
       </div>
       <div id="cantact" class="bg-info p-4">
           <div class="row justify-content-center mt-3 mb-3">
-              <div class="col-lg-4">
+              <div v-if="showContact" class="col-lg-4">
                   <h2>Have any Question?</h2>
                   <p>Contact us by filling out the information below</p>
-              <form >
+              
+              <div v-if="contactNotice != ''" class="alert alert-warning">
+                  There was a problem submitting your message. "{{contactNotice}}"
+              </div>
+
+              <form @submit.prevent="sendContactMessage()">
                   <div class="form-group text-left">
-                      <input type="email" class="form-control" placeholder="Enter your email">
-                      <textarea class="form-control mt-3" placeholder="enter your message" rows="6"></textarea>
+                      <input
+                        type="email"
+                        v-model="contactEmail"
+                        class="form-control"
+                        placeholder="Enter your email">
+                      <textarea
+                        class="form-control mt-3"
+                        v-model="contactMessage"
+                        placeholder="enter your message"
+                        rows="6"></textarea>
                   </div>
-                  <button type="submit" class="mt-3 btn btn-warning">Send message</button>
+                  <button type="submit" class="mt-3 nes-btn is-warning">Send message</button>
               </form>
+              </div>
+              <div v-else>
+                  <h3>Message is send successfully!</h3>
+                  <p>Thank you for contacting us, we'll get back to you as soon as possible.</p>
               </div>
           </div>
       </div>
@@ -92,11 +112,56 @@
 </template>
 
 <script>
+import {firebaseAuth} from '../firebase/firebaseInit'
 export default {
     name: 'homepage',
     data(){
         return{
-            title: 'MN-Traveller'
+            title: 'MN-Traveller',
+            email: '',
+            message: '',
+            showContact: true,
+            contactEmail: '',
+            contactMessage: '',
+            contactNotice: '',
+        }
+    },
+    methods: {
+        sendContactMessage(){
+            if(!this.validEmail(this.contactEmail)){
+                this.contactNotice = 'The email address is badly formatted!'
+            }else if(this.contactMessage.length < 10){
+                this.contactNotice = 'Your message is too short!'
+            }else{
+                const url = `https://us-central1-mn-traveller.cloudfunctions.net/sendEmail?emailFrom=${this.contactEmail}&message=${this.contactMessage}`
+                const requestOption = {
+                    method: 'GET',
+                    headers: {'Content-Type': 'application/json'}
+                }
+                fetch(url)
+                this.showContact = false
+            }
+        },
+        validEmail(email) {
+            var re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            return re.test(email);
+        },
+        async signUp(email){
+            let noticeMessage = 'Your account has been reserved'
+            await firebaseAuth.createUserWithEmailAndPassword(email, this.randomPassword(15)).catch(err => {
+                noticeMessage = err.message
+                })
+                this.message = noticeMessage
+            this.email = ''
+        },
+        randomPassword(length){
+            let chars = "abcdefghijklmnopqrstuvwxyz!@#$%^&*()_+<>ABCDEFGHIJKLMNOPQRSTUVWXYZ123546789"
+            let password = ''
+            for (let x = 0; x < length; x++){
+                let i = Math.floor(Math.random() * chars.length);
+                password += chars.charAt(i);
+            }
+           return password
         }
     }
 }
